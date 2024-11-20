@@ -6,6 +6,7 @@ import CreatePost from "./components/CreatePost";
 import UserProfile from "./components/UserProfile";
 import ProtectedRoute from "./utils/ProtectedRoute";
 import Signup from "./components/Signup";
+import UsersToFollow from "./components/UsersToFollow";
 
 const App: React.FC = () => {
   return (
@@ -38,6 +39,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <UserProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users-to-follow"
+            element={
+              <ProtectedRoute>
+                <UsersToFollow />
               </ProtectedRoute>
             }
           />

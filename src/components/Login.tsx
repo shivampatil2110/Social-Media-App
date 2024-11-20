@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../config/firebase";
 import { Link, useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -15,6 +16,7 @@ const Login: React.FC = () => {
 
     try {
       let res = await signInWithEmailAndPassword(auth, email, password);
+      Cookies.set("user_id", res.user.uid, { expires: 7 });
       navigate("/feed");
     } catch (err: any) {
       setError(err.message);

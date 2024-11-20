@@ -19,6 +19,9 @@ const Navbar: React.FC = () => {
           <Link to="/profile" className="hover:underline">
             Profile
           </Link>
+          <Link to="/users-to-follow" className="hover:underline">
+            UsersToFollow
+          </Link>
           <LogoutButton />
         </div>
       </div>
