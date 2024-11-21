@@ -1,14 +1,17 @@
-import React from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import React from "react";
+import { signOut } from "firebase/auth";
+import { auth } from "../config/firebase";
+import { toast } from "react-toastify";
+import Cookies from "js-cookie";
 
 const LogoutButton: React.FC = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      console.log('Logged out successfully');
+      Cookies.remove("user_id");
+      toast.success("Logged out successfully");
     } catch (err) {
-      console.error('Error logging out:', err);
+      toast.error("Error logging out");
     }
   };
 

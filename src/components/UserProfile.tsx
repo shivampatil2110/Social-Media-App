@@ -1,100 +1,176 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { gql, useQuery } from "@apollo/client";
 import Cookies from "js-cookie";
-import { supabase } from "../config/supabase";
 import Navbar from "./Navbar";
+import defaultProfilePicture from "../img/default_profile_picture.png";
+import Spinner from "../utils/Spinner";
 
-interface Post {
-  id: string;
-  content: string;
-  image: string | null;
-  created_at: string;
-}
+// Relay-style GraphQL Queries
+const GET_USER = gql`
+  query GetUser($userId: String!) {
+    usersCollection(filter: { userId: { eq: $userId } }, first: 1) {
+      edges {
+        node {
+          id
+          username
+          profile_picture
+        }
+      }
+    }
+  }
+`;
+
+const GET_USER_POSTS = gql`
+  query GetUserPosts($userId: String!) {
+    postsCollection(
+      filter: { author_id: { eq: $userId } }
+      orderBy: { created_at: DescNullsLast }
+      first: 10
+    ) {
+      edges {
+        node {
+          id
+          content
+          image
+          created_at
+        }
+      }
+    }
+  }
+`;
+
+const GET_USER_STATS = gql`
+  query GetUserStats($userId: String!) {
+    followers: followsCollection(filter: { following_id: { eq: $userId } }) {
+      edges {
+        node {
+          id
+        }
+      }
+    }
+    following: followsCollection(filter: { follower_id: { eq: $userId } }) {
+      edges {
+        node {
+          id
+        }
+      }
+    }
+  }
+`;
 
 const UserProfile: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
+  const userId = Cookies.get("user_id");
 
-  const fetchUserPosts = async () => {
-    try {
-      const authorId = Cookies.get("user_id");
-      if (!authorId) {
-        throw new Error("User not logged in");
-      }
+  // Fetch User Profile
+  const {
+    loading: userLoading,
+    error: userError,
+    data: userData,
+  } = useQuery(GET_USER, {
+    variables: { userId },
+    skip: !userId,
+  });
 
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false });
+  // Fetch User Posts
+  const {
+    loading: postsLoading,
+    error: postsError,
+    data: postsData,
+  } = useQuery(GET_USER_POSTS, {
+    variables: { userId },
+    skip: !userId,
+  });
 
-      if (error) {
-        console.error("Error fetching posts:", error.message);
-        return;
-      }
+  // Fetch User Stats
+  const {
+    loading: statsLoading,
+    error: statsError,
+    data: statsData,
+  } = useQuery(GET_USER_STATS, {
+    variables: { userId },
+    skip: !userId,
+  });
 
-      setPosts(data || []);
-    } catch (error: any) {
-      console.error("Error:", error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (userLoading || postsLoading || statsLoading) return <Spinner />;
+  if (userError || postsError || statsError) {
+    return (
+      <p>
+        Error:{" "}
+        {userError?.message || postsError?.message || statsError?.message}
+      </p>
+    );
+  }
 
-  useEffect(() => {
-    fetchUserPosts();
-  }, []);
-
-  if (loading) return <p>Loading...</p>;
+  const user = userData?.usersCollection.edges[0]?.node;
+  const posts =
+    postsData?.postsCollection.edges.map((edge: any) => edge.node) || [];
+  const followersCount = statsData?.followers.edges.length || 0;
+  const followingCount = statsData?.following.edges.length || 0;
 
   return (
     <>
       <Navbar />
-      <div className="bg-white shadow rounded p-6 mb-6">
-        <h1 className="text-2xl font-bold">{"dflkmnds"}</h1>
-        <p className="text-gray-600">{"oijsg"}</p>
-        <div className="flex space-x-6 mt-4">
+      <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+        <div className="flex items-center space-x-6">
+          <img
+            src={user?.profile_picture || defaultProfilePicture}
+            alt={user?.username || "Default profile"}
+            className="w-20 h-20 rounded-full object-cover border-2 border-blue-400"
+          />
           <div>
-            <span className="block text-xl font-bold">{"51"}</span>
-            <span className="text-gray-500">Followers</span>
+            <h1 className="text-3xl font-semibold text-gray-800">
+              {user?.username || "No Username"}
+            </h1>
+            <p className="text-sm text-gray-500">
+              @{user?.username || "unknown"}
+            </p>
           </div>
-          <div>
-            <span className="block text-xl font-bold">{"51"}</span>
-            <span className="text-gray-500">Following</span>
+        </div>
+        <div className="flex space-x-10 mt-6">
+          <div className="text-center">
+            <span className="block text-2xl font-semibold text-gray-800">
+              {followersCount}
+            </span>
+            <span className="text-sm text-gray-500">Followers</span>
+          </div>
+          <div className="text-center">
+            <span className="block text-2xl font-semibold text-gray-800">
+              {followingCount}
+            </span>
+            <span className="text-sm text-gray-500">Following</span>
           </div>
         </div>
       </div>
       <div className="p-6 bg-gray-50 min-h-screen">
-        <h1 className="text-3xl font-bold text-center mb-6">Your Posts</h1>
-        <div className="space-y-4">
-          {posts.length === 0 ? (
-            <p className="text-center text-gray-500">
-              You haven't created any posts yet.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-white rounded-lg shadow-lg overflow-hidden"
-                >
-                  <p className="text-gray-700 p-4">{post.content}</p>
-                  {post.image && (
-                    <div className="relative w-full h-64">
-                      <img
-                        className="absolute inset-0 w-full h-full object-cover"
-                        src={post.image}
-                        alt="Post"
-                      />
-                    </div>
-                  )}
-                  <p className="text-sm text-gray-500 mt-2 p-4">
-                    Posted on {new Date(post.created_at).toLocaleString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">
+          Your Posts
+        </h1>
+        {posts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {posts.map((post: any) => (
+              <div
+                key={post.id}
+                className="bg-white rounded-lg shadow-md overflow-hidden"
+              >
+                <p className="text-gray-700 p-8 text-md">{post.content}</p>
+                {post.image && (
+                  <img
+                    className="w-full h-64 object-cover"
+                    src={post.image}
+                    alt="Post"
+                  />
+                )}
+                <p className="text-xs text-gray-500 mt-4 p-6">
+                  Posted on {new Date(post.created_at).toLocaleString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-gray-500">
+            You haven't created any posts yet.
+          </p>
+        )}
       </div>
     </>
   );
