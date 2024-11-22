@@ -69,6 +69,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(GET_USER, {
     variables: { userId },
     skip: !userId,
+    fetchPolicy: "cache-and-network",
   });
 
   // Fetch User Posts
@@ -79,6 +80,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(GET_USER_POSTS, {
     variables: { userId },
     skip: !userId,
+    fetchPolicy: "cache-and-network",
   });
 
   // Fetch User Stats
@@ -89,6 +91,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(GET_USER_STATS, {
     variables: { userId },
     skip: !userId,
+    fetchPolicy: "cache-and-network",
   });
 
   if (userLoading || postsLoading || statsLoading) return <Spinner />;

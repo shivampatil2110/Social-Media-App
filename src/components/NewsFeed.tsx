@@ -114,7 +114,7 @@ const NewsFeed: React.FC = () => {
 
           {loading && <Spinner />}
           {!hasMore && (
-            <p className="text-center text-gray-500">No more posts</p>
+            <h1 className="text-center text-gray-500">No more posts</h1>
           )}
         </div>
       </div>
